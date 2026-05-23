@@ -3,6 +3,7 @@ import { BrowserTools } from '../tools/BrowserTools';
 import { AssertionTools } from '../tools/AssertionTools';
 import { ArtifactTools } from '../tools/ArtifactTools';
 import { SelfHealer } from './SelfHealer';
+import { logger } from '../observability/Logger';
 
 export enum ExecutionState {
   IDLE = 'IDLE',
@@ -24,17 +25,22 @@ export class ExecutionStateMachine {
     return this.state;
   }
 
+  private transition(newState: ExecutionState) {
+    logger.info(`State transition: ${this.state} -> ${newState}`);
+    this.state = newState;
+  }
+
   /**
    * Executes a TestPlan against a BrowserSession
    */
   async executePlan(session: BrowserSession, plan: TestPlan): Promise<StepResult[]> {
-    this.state = ExecutionState.PLANNING;
+    this.transition(ExecutionState.PLANNING);
     this.results = [];
 
     const executedStepIds = new Set<string>();
     const stepsToExecute = [...plan.steps];
 
-    this.state = ExecutionState.EXECUTING;
+    this.transition(ExecutionState.EXECUTING);
 
     while (stepsToExecute.length > 0) {
       // Find a step that has no unmet dependencies
@@ -44,6 +50,7 @@ export class ExecutionStateMachine {
 
       if (readyStepIndex === -1) {
         const remainingIds = stepsToExecute.map(s => s.id).join(', ');
+        logger.error('Deadlock detected in TestPlan dependencies', { remainingSteps: remainingIds });
         throw new Error(`Deadlock detected in TestPlan dependencies or missing dependency. Remaining steps: ${remainingIds}`);
       }
 
@@ -55,12 +62,12 @@ export class ExecutionStateMachine {
       executedStepIds.add(step.id);
 
       if (!result.success) {
-        // Stop execution on failure unless there's a reason to continue
+        logger.warn(`Step failed: ${step.id}. Stopping execution.`, { stepId: step.id, error: result.error });
         break;
       }
     }
 
-    this.state = ExecutionState.REPORTING;
+    this.transition(ExecutionState.REPORTING);
     return this.results;
   }
 
@@ -68,6 +75,8 @@ export class ExecutionStateMachine {
    * Executes a single TestStep
    */
   private async executeStep(session: BrowserSession, step: TestStep): Promise<StepResult> {
+    logger.logStep(step.id, step.action, 'started', { description: step.description });
+    
     let actionResult: ActionResult;
     const artifacts: StepArtifact[] = [];
 
@@ -109,6 +118,7 @@ export class ExecutionStateMachine {
 
     // Handle failure: Trigger SelfHealer and capture artifacts
     if (!actionResult.success) {
+      logger.logStep(step.id, step.action, 'failed', { error: actionResult.error });
       await this.triggerSelfHealer(session, step, actionResult);
       
       try {
@@ -131,8 +141,10 @@ export class ExecutionStateMachine {
           artifacts.push(networkArtifact);
         }
       } catch (artifactError) {
-        console.error(`Failed to capture artifacts for step ${step.id}:`, artifactError);
+        logger.error(`Failed to capture artifacts for step ${step.id}`, { error: artifactError });
       }
+    } else {
+      logger.logStep(step.id, step.action, 'completed');
     }
 
     return {

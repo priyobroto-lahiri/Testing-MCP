@@ -60,3 +60,26 @@ export interface HealingContext {
   failedStrategy: string;
   attemptedStrategies: SelectorStrategy[];
 }
+
+export interface TestReport {
+  planId: string;
+  goal: string;
+  startTime: string;
+  endTime: string;
+  durationMs: number;
+  totalSteps: number;
+  passedSteps: number;
+  failedSteps: number;
+  results: StepResult[];
+}
+
+export interface LogEntry {
+  timestamp: string;
+  level: 'info' | 'warn' | 'error' | 'debug';
+  message: string;
+  context?: Record<string, any>;
+}
+
+export interface SecretStore {
+  getSecret(key: string): Promise<string | undefined>;
+}
