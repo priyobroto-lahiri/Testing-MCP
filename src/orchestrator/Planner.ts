@@ -1,27 +1,36 @@
-import { TestPlan } from '../types';
+import { OpenAI } from 'openai';
+import { TestPlan, TestStep } from '../types';
+import { SecretManager } from '../security/SecretManager';
 
 /**
  * TestPlanner is responsible for converting natural language test descriptions
  * into a structured, executable TestPlan (Directed Acyclic Graph).
- * 
- * ### LLM Prompt Engineering Strategy:
- * To generate this JSON reliably, the LLM prompt should include:
- * 1. **System Instruction**: Explicitly define the role (e.g., "You are a test automation engineer").
- * 2. **Schema Enforcement**: Provide the JSON schema of `TestPlan` and `TestStep` and use techniques like 
- *    JSON-mode or constrained decoding to ensure the output strictly adheres to the TypeScript interfaces.
- * 3. **Step Decomposition**: Instruct the LLM to break down the user goal into atomic actions (navigate, click, type, etc.).
- * 4. **Dependency Mapping**: Require the LLM to populate `dependsOn` arrays to create a valid execution DAG, 
- *    ensuring that prerequisites (like logging in) are completed before subsequent actions.
- * 5. **Spatial/Functional Reasoning**: If visual context (DOM snapshots) is provided, instruct the LLM to 
- *    identify interactive elements and their likely selectors, though initial planning might rely on 
- *    logical descriptions that are later refined.
- * 6. **Few-Shot Examples**: Include examples of natural language inputs and their corresponding JSON TestPlans 
- *    to guide the LLM's understanding of complexity and structure.
  */
 export class TestPlanner {
+  private openai?: OpenAI;
+  private secretManager: SecretManager;
+
+  constructor() {
+    this.secretManager = new SecretManager();
+  }
+
+  /**
+   * Initializes the OpenAI client if the API key is available.
+   */
+  private async initOpenAI(): Promise<boolean> {
+    if (this.openai) return true;
+
+    const apiKey = await this.secretManager.getSecret('OPENAI_API_KEY');
+    if (apiKey) {
+      this.openai = new OpenAI({ apiKey });
+      return true;
+    }
+    return false;
+  }
+
   /**
    * Generates a TestPlan based on user input.
-   * Currently returns a placeholder plan for a "Login and Search" scenario.
+   * Calls GPT-4o with a structured prompt. Falls back to a hardcoded plan if OpenAI is unavailable.
    * 
    * @param userInput Natural language description of the test goal.
    * @returns A Promise resolving to a structured TestPlan.
@@ -29,10 +38,63 @@ export class TestPlanner {
   async generatePlan(userInput: string): Promise<TestPlan> {
     console.log(`Generating plan for: "${userInput}"`);
 
-    // Placeholder: Hardcoded "Login and Search" scenario
-    const plan: TestPlan = {
+    const hasOpenAI = await this.initOpenAI();
+
+    if (hasOpenAI && this.openai) {
+      try {
+        const response = await this.openai.chat.completions.create({
+          model: 'gpt-4o',
+          messages: [
+            {
+              role: 'system',
+              content: `You are an expert test automation engineer. Your task is to convert a natural language test goal into a structured JSON TestPlan.
+              
+The TestPlan consists of a goal and an array of steps. Each step must have:
+- id: A unique string identifier.
+- description: A clear description of what the step does.
+- action: One of 'navigate', 'click', 'type', 'hover', 'assert'.
+- params: A JSON object with action-specific parameters:
+    - navigate: { url: string }
+    - click: { selector: string }
+    - type: { selector: string, value: string }
+    - hover: { selector: string }
+    - assert: { type: 'elementState' | 'text' | 'url', selector?: string, state?: 'visible' | 'hidden', text?: string, url?: string }
+- expectedResult: (Optional) What should happen after the step.
+- dependsOn: (Optional) An array of step IDs that must be completed before this step.
+
+Ensure the plan follows a logical flow and prerequisite steps (like navigation or login) are correctly mapped in 'dependsOn'.
+Output MUST be a valid JSON object matching the TestPlan schema.`
+            },
+            {
+              role: 'user',
+              content: `Test Goal: ${userInput}`
+            }
+          ],
+          response_format: { type: 'json_object' }
+        });
+
+        const content = response.choices[0].message.content;
+        if (content) {
+          const plan = JSON.parse(content) as TestPlan;
+          // Ensure it has an ID if the LLM missed it
+          if (!plan.id) plan.id = `plan_${Date.now()}`;
+          return plan;
+        }
+      } catch (error) {
+        console.error('Error calling OpenAI API, falling back to hardcoded plan:', error);
+      }
+    } else {
+      console.warn('OPENAI_API_KEY not found, using hardcoded plan.');
+    }
+
+    // Fallback: Hardcoded "Login and Search" scenario
+    return this.getFallbackPlan();
+  }
+
+  private getFallbackPlan(): TestPlan {
+    return {
       id: `plan_${Date.now()}`,
-      goal: "Login to the application and search for a product",
+      goal: "Login to the application and search for a product (Fallback)",
       steps: [
         {
           id: "step_1",
@@ -99,7 +161,5 @@ export class TestPlanner {
         }
       ]
     };
-
-    return plan;
   }
 }

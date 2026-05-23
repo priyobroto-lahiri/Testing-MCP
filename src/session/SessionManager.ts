@@ -10,7 +10,8 @@ export class SessionManager {
    */
   async launchSession(): Promise<BrowserSession> {
     try {
-      const browser = await chromium.launch({ headless: false }); // Launching with head for local automation visibility
+      const isHeadless = process.env.HEADLESS === 'true' || !!process.env.CI;
+      const browser = await chromium.launch({ headless: isHeadless }); 
       const context = await browser.newContext();
       const page = await context.newPage();
       const id = crypto.randomUUID();

@@ -66,6 +66,25 @@ Refining the system for developer productivity, security, and auditable reportin
 
 ---
 
+## Phase 4: Production Integration
+**Weeks 9 – 10**
+
+Scaling the system for team usage and fully automated pipelines.
+
+### 4.1 Live LLM Brain
+*   **API Integration:** Replace placeholder logic with actual OpenAI/Anthropic API calls for dynamic plan generation.
+*   **Contextual Feedback:** Feed execution results and DOM snapshots back to the LLM to refine subsequent steps.
+
+### 4.2 CI/CD Orchestration
+*   **GitHub Actions:** Create reusable workflows to execute tests on PRs, including artifact upload and status reporting.
+*   **Headless Scaling:** Optimize the local session manager for high-concurrency headless execution in CI environments.
+
+### 4.3 Visual Healing & CLI
+*   **Visual Fallback:** Implement (x, y) coordinate-based interaction fallback using LLM spatial reasoning on screenshots.
+*   **CLI Wrapper:** Build a polished CLI (e.g., `test-mcp run --test login.md`) for ease of use.
+
+---
+
 ## Key Risks & Mitigation
 
 | Risk | Impact | Mitigation |
