@@ -1,0 +1,84 @@
+# Project Roadmap: AI-Driven Manual Test Execution
+
+> Estimated Timeline: 6–8 Weeks (1.5 – 2 Months)  
+> Team: 2 Senior Engineers (Full-Stack / AI / Browser Automation)
+
+---
+
+## Overview
+
+This roadmap outlines the development of the **Version 2.0 Local-First Architecture**. By pivoting to a local execution model (launching/attaching to local browsers instead of Docker), we have reduced the timeline from 4 months to approximately 2 months by focusing on developer utility and core agent intelligence.
+
+---
+
+## Phase 1: Local Integration & Core MCP Servers
+**Weeks 1 – 2**
+
+This phase builds the "Hands and Eyes" of the system, enabling the LLM to control the local environment.
+
+### 1.1 Local Session Manager
+*   **Mode A (Launch):** Implement logic to launch fresh, isolated Chromium/Firefox instances via Playwright with unique profiles.
+*   **Mode B (Attach):** Build the connection logic for the Chrome DevTools Protocol (CDP) to attach to an existing browser on port 9222.
+*   **Lifecycle Management:** Ensure clean detachment and process cleanup on test completion.
+
+### 1.2 Browser Automation MCP
+*   **Tool Suite:** Implement `navigate`, `interact` (click, type, hover), and `get_dom`.
+*   **Network Awareness:** Build `get_network_log` to capture silent 4xx/5xx API failures during UI interactions.
+*   **Compression:** Implement DOM tree compression for context-efficient LLM processing.
+
+### 1.3 Assertion & Artifact Store MCP
+*   **Standard Assertions:** Build text-present, URL-match, and element-state assertions.
+*   **Artifact Store:** Implement local filesystem persistence for screenshots and DOM snapshots in an `./artifacts` directory.
+
+---
+
+## Phase 2: Orchestration Layer & Intelligence
+**Weeks 3 – 6**
+
+This is the "Brain" of the system, converting intent into reliable, self-healing actions.
+
+### 2.1 Intent Parser & Planner
+*   **LLM Pass 1:** Build the prompt chain that converts natural language test cases into a deterministic JSON **Step DAG** (Directed Acyclic Graph).
+*   **Ambiguity Handling:** Implement logic to flag vague steps and ask the user for clarification before starting execution.
+
+### 2.2 Execution State Machine
+*   **The Loop:** Develop the core state machine (IDLE -> PLANNING -> EXECUTING -> ASSERTING -> REPORTING).
+*   **Reliability:** Implement step-level timeouts and configurable retries.
+
+### 2.3 Self-Healing Selector Engine
+*   **Fallback Chain:** Implement the multi-stage resilience logic (CSS → XPath → ARIA → Visible Text).
+*   **Learning:** Log all successful fallbacks to improve future selector generation.
+
+---
+
+## Phase 3: Developer Experience & Security
+**Weeks 7 – 8**
+
+Refining the system for developer productivity, security, and auditable reporting.
+
+### 3.1 Local Secret Management
+*   **Credential Injection:** Build integration with `.env` files and standard OS Keychains (macOS Keychain / Windows Credential Manager).
+*   **Security:** Ensure secrets are never logged in tool calls, reports, or console output.
+
+### 3.2 Observability & Reporting
+*   **Structured Logs:** Emit OTel trace spans and structured JSON logs for every tool call.
+*   **Rich Reports:** Generate Markdown summaries with embedded artifact links and JUnit XML files for CI integration.
+
+---
+
+## Key Risks & Mitigation
+
+| Risk | Impact | Mitigation |
+|---|---|---|
+| **"Works on My Machine"** | Medium | Documentation for standard browser profiles and profile isolation (Mode A). |
+| **CDP Attach State** | Medium | Orchestrator verifies page state and clears common overlays/modals upon attachment. |
+| **LLM Hallucinations** | High | Mandatory "Inspect before interact" rule (always call `get_dom` before mutation). |
+| **Cost Control** | Low | Hard caps on max steps per run and token budget per step. |
+
+---
+
+## Success Criteria
+
+1.  **Zero Silent Failures:** Every backend API error is caught via `get_network_log`.
+2.  **Resilience:** The self-healing engine correctly fixes at least 80% of brittle CSS selector changes.
+3.  **Auditability:** Every single action is traceable to a specific tool call, DOM snapshot, and screenshot.

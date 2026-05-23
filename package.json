@@ -1,0 +1,22 @@
+{
+  "name": "testing-mcp",
+  "version": "1.0.0",
+  "description": "AI-Driven Manual Test Execution via MCP",
+  "main": "dist/index.js",
+  "scripts": {
+    "start": "ts-node src/index.ts",
+    "build": "tsc",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^0.6.0",
+    "playwright": "^1.44.0",
+    "zod": "^3.23.8",
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "@types/node": "^20.12.12",
+    "typescript": "^5.4.5",
+    "ts-node": "^10.9.2"
+  }
+}
