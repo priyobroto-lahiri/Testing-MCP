@@ -7,11 +7,16 @@ export class SessionManager {
 
   /**
    * Mode A: Launch a fresh isolated browser context.
+   * Prioritizes Microsoft Edge (msedge) for office environment compatibility.
    */
   async launchSession(): Promise<BrowserSession> {
     try {
       const isHeadless = process.env.HEADLESS === 'true' || !!process.env.CI;
-      const browser = await chromium.launch({ headless: isHeadless }); 
+      // Use 'msedge' channel to leverage the browser already installed on most Windows/VDI systems.
+      const browser = await chromium.launch({ 
+        headless: isHeadless,
+        channel: 'msedge'
+      }); 
       const context = await browser.newContext();
       const page = await context.newPage();
       const id = crypto.randomUUID();

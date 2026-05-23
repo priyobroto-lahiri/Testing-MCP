@@ -30,8 +30,8 @@ Think of this tool as giving the AI **Hands** and **Eyes**:
 This is the preferred method for office users who are already logged into internal portals.
 
 ### 1. Prepare your Browser
-Close Chrome and reopen it using this special command (you can save this as a desktop shortcut):
-> `chrome.exe --remote-debugging-port=9222`
+Close Edge and reopen it using this special command (you can save this as a desktop shortcut):
+> `msedge.exe --remote-debugging-port=9222`
 *This allows the AI to "see" inside this specific browser window.*
 
 ### 2. Connect the Brain
