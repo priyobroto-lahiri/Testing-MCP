@@ -71,23 +71,29 @@ The framework exposes a suite of specialized tools to the AI, allowing it to per
 
 ---
 
-## 💻 Office Setup & Deployment
+## 💻 Office Setup & Deployment (Portable Mode)
+
+This project is pre-bundled to work in restricted office environments without requiring `npm install` or complex build steps. You only need **Node.js** installed on your machine.
 
 ### **Step 1: Get the Code**
-Clone the repository. If you are on an office laptop where `npm install` is failing, follow the **"Portable Mode"** instructions below.
+Clone the repository to your local machine:
+```bash
+git clone https://github.com/priyobroto-lahiri/Testing-MCP.git
+cd Testing-MCP
+```
 
-### **Step 2: Start the Dashboard (Portable Mode)**
-I have pre-bundled the application logic into the `dist/` folder. You only need **Node.js** installed to run it.
+### **Step 2: Start the Dashboard**
+The dashboard and artifact bridge are pre-compiled. Run the batch script to launch the local server:
 ```bash
 # Run this from the root of the project
 .\start-dashboard.bat
 ```
-*Access the dashboard in your browser at: **http://localhost:3001***
+*Access the UI at: **http://localhost:3001***
 
-### **Step 3: Register the MCP Server (Portable Mode)**
-In your Cline settings, point to the **bundled** version:
+### **Step 3: Register with Cline**
+In your VS Code Cline settings, point to the **bundled** MCP server:
 *   **Command**: `node`
-*   **Arguments**: `["C:/YOUR_PATH_TO_PROJECT/dist/mcp-server/index.js"]`
+*   **Arguments**: `["C:/ABSOLUTE_PATH_TO_PROJECT/dist/mcp-server/index.js"]`
 
 ---
 
