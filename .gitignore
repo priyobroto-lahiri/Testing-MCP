@@ -1,11 +1,18 @@
 node_modules/
-dist/
-!dist/mcp-server/
-!dist/dashboard-server/
 artifacts/
 .env
 *.log
 .DS_Store
 
-# Allow dashboard frontend dist
+# Allow specific bundled outputs in dist
+dist/**
+!dist/mcp-server/
+!dist/mcp-server/**
+!dist/dashboard-server/
+!dist/dashboard-server/**
+
+# Dashboard Frontend
+dashboard/frontend/node_modules/
+dashboard/frontend/dist/**
 !dashboard/frontend/dist/
+!dashboard/frontend/dist/**
