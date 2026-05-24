@@ -73,25 +73,25 @@ The framework exposes a suite of specialized tools to the AI, allowing it to per
 
 ## 💻 Office Setup & Deployment
 
-### **Installation**
-```bash
-# Clone and install dependencies
-git clone https://github.com/priyobroto-lahiri/Testing-MCP.git
-cd Testing-MCP
-npm install
+### **Step 1: Get the Code**
+Clone the repository. If you are on an office laptop where `npm install` is failing, follow the **"Portable Mode"** instructions below.
 
-# Build the project
-npm run build
-```
-
-### **Running the Dashboard**
+### **Step 2: Start the Dashboard (Portable Mode)**
+I have pre-bundled the application logic into the `dist/` folder. You only need **Node.js** installed to run it.
 ```bash
-# Launch the real-time UI and artifact bridge
+# Run this from the root of the project
 .\start-dashboard.bat
 ```
-*View live results at: [http://localhost:5173](http://localhost:5173)*
+*Access the dashboard in your browser at: **http://localhost:3001***
 
-### **Connecting to Cline (VS Code)**
+### **Step 3: Register the MCP Server (Portable Mode)**
+In your Cline settings, point to the **bundled** version:
+*   **Command**: `node`
+*   **Arguments**: `["C:/YOUR_PATH_TO_PROJECT/dist/mcp-server/index.js"]`
+
+---
+
+## 🔌 Connecting to Cline (VS Code)
 
 Follow these steps to integrate the Testing-MCP server with your VS Code environment:
 
@@ -115,7 +115,7 @@ Follow these steps to integrate the Testing-MCP server with your VS Code environ
   "mcpServers": {
     "testing-mcp": {
       "command": "node",
-      "args": ["C:/YOUR_PATH_TO_PROJECT/dist/index.js"],
+      "args": ["C:/YOUR_PATH_TO_PROJECT/dist/mcp-server/index.js"],
       "env": {
         "DASHBOARD_PORT": "3001"
       }

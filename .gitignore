@@ -1,6 +1,11 @@
 node_modules/
 dist/
+!dist/mcp-server/
+!dist/dashboard-server/
 artifacts/
 .env
 *.log
 .DS_Store
+
+# Allow dashboard frontend dist
+!dashboard/frontend/dist/

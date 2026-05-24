@@ -1,3 +1,3 @@
 @echo off
-cd /d "D:\Coding Workspace\VS Code workspace\Testing-MCP"
-node dist/index.js
+cd /d "%~dp0"
+node dist/mcp-server/index.js

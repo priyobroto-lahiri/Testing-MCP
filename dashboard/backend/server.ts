@@ -18,13 +18,16 @@ const io = new Server(httpServer, {
 });
 
 const PORT: number = parseInt(process.env.DASHBOARD_PORT || "3001");
-
 app.use(cors());
 app.use(express.json());
 
 // Serve the artifacts folder as static assets
 const artifactsDir = path.resolve(process.cwd(), "artifacts");
 app.use("/artifacts", express.static(artifactsDir));
+
+// Serve the frontend if built
+const frontendDir = path.resolve(process.cwd(), "dashboard", "frontend", "dist");
+app.use(express.static(frontendDir));
 
 /**
  * Endpoint to receive events from the MCP server.
