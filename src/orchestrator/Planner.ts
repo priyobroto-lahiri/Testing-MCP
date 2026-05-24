@@ -36,7 +36,7 @@ export class TestPlanner {
    * @returns A Promise resolving to a structured TestPlan.
    */
   async generatePlan(userInput: string): Promise<TestPlan> {
-    console.log(`Generating plan for: "${userInput}"`);
+    console.error(`Generating plan for: "${userInput}"`);
 
     const hasOpenAI = await this.initOpenAI();
 
@@ -84,7 +84,7 @@ Output MUST be a valid JSON object matching the TestPlan schema.`
         console.error('Error calling OpenAI API, falling back to hardcoded plan:', error);
       }
     } else {
-      console.warn('OPENAI_API_KEY not found, using hardcoded plan.');
+      console.error('OPENAI_API_KEY not found, using hardcoded plan.');
     }
 
     // Fallback: Hardcoded "Login and Search" scenario
@@ -163,3 +163,4 @@ Output MUST be a valid JSON object matching the TestPlan schema.`
     };
   }
 }
+

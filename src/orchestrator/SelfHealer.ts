@@ -16,12 +16,12 @@ export class SelfHealer {
    * Fallback Chain: CSS -> XPath -> ARIA -> Text
    */
   async attemptHealing(session: BrowserSession, context: HealingContext): Promise<ActionResult> {
-    console.log(`[SelfHealer] Attempting to heal step ${context.stepId}. Failed selector: ${context.failedSelector} (${context.failedStrategy})`);
+    console.error(`[SelfHealer] Attempting to heal step ${context.stepId}. Failed selector: ${context.failedSelector} (${context.failedStrategy})`);
 
     const strategiesToTry = this.sortStrategies(context.attemptedStrategies, context.failedSelector, context.failedStrategy);
 
     if (strategiesToTry.length === 0) {
-      console.log(`[SelfHealer] No alternative strategies provided for step ${context.stepId}. Analyzing DOM for context...`);
+      console.error(`[SelfHealer] No alternative strategies provided for step ${context.stepId}. Analyzing DOM for context...`);
       // We still get the DOM as requested, even if we don't use it yet for auto-discovery
       await this.browserTools.getDOM(session);
       return {
@@ -31,7 +31,7 @@ export class SelfHealer {
     }
 
     for (const strategy of strategiesToTry) {
-      console.log(`[SelfHealer] Trying fallback strategy: ${strategy.strategy} = ${strategy.selector}`);
+      console.error(`[SelfHealer] Trying fallback strategy: ${strategy.strategy} = ${strategy.selector}`);
       
       let result: ActionResult;
       
@@ -65,13 +65,13 @@ export class SelfHealer {
       }
 
       if (result.success) {
-        console.log(`[SelfHealer] Healing successful using ${strategy.strategy} strategy!`);
+        console.error(`[SelfHealer] Healing successful using ${strategy.strategy} strategy!`);
         return {
           ...result,
           message: `Healed using ${strategy.strategy} strategy. Original failed: ${context.failedSelector}. New: ${strategy.selector}`,
         };
       } else {
-        console.log(`[SelfHealer] Fallback strategy ${strategy.strategy} failed: ${result.error || result.message}`);
+        console.error(`[SelfHealer] Fallback strategy ${strategy.strategy} failed: ${result.error || result.message}`);
       }
     }
 

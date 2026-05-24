@@ -11,9 +11,8 @@ export class SecretManager implements SecretStore {
     // dotenv.config() handles missing .env files gracefully by returning an error object instead of throwing.
     const result = dotenv.config();
     if (result.error) {
-      // We don't throw here as the environment variables might already be set 
-      // in the shell or we might be relying on the OS Keychain.
-      console.debug('SecretManager: .env file not found or could not be loaded, proceeding with process.env.');
+      // Use console.error for startup messages so they don't break the MCP stdio protocol
+      console.error('SecretManager: .env file not found or could not be loaded, proceeding with process.env.');
     }
   }
 

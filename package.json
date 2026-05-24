@@ -4,22 +4,29 @@
   "description": "AI-Driven Manual Test Execution via MCP",
   "main": "dist/index.js",
   "scripts": {
-    "start": "ts-node src/index.ts",
+    "start": "node dist/index.js",
+    "dashboard:backend": "ts-node dashboard/backend/server.ts",
     "build": "tsc",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.98.0",
     "@modelcontextprotocol/sdk": "^0.6.0",
+    "axios": "^1.16.1",
     "chalk": "^4.1.2",
     "commander": "^14.0.3",
+    "cors": "^2.8.6",
     "dotenv": "^16.4.5",
+    "express": "^5.2.1",
     "openai": "^6.39.0",
     "ora": "^5.4.1",
     "playwright": "^1.44.0",
+    "socket.io": "^4.8.3",
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
     "@types/node": "^20.12.12",
     "ts-node": "^10.9.2",
     "typescript": "^5.4.5"

@@ -1,0 +1,6 @@
+@echo off
+echo Starting Dashboard Backend...
+start "Dashboard Backend" npm run dashboard:backend
+echo Starting Dashboard Frontend...
+cd dashboard/frontend
+npm run dev

@@ -85,6 +85,23 @@ Scaling the system for team usage and fully automated pipelines.
 
 ---
 
+## Phase 5: Live Execution Dashboard (Local-First)
+**Weeks 11 – 12**
+
+Providing real-time visual monitoring using local file-based storage.
+
+### 5.1 Local Data Bridge
+*   **JSON Logger:** Implement a persistent `execution_log.json` that stores the history of all commands, statuses, and linked screenshot paths.
+*   **Express File Server:** Set up an Express server that watches the JSON log for changes and serves the local `artifacts/` folder as static assets.
+*   **WebSocket Sync:** Broadcast "delta" updates to the React frontend whenever the JSON log is appended to.
+
+### 5.2 React Dashboard
+*   **File-Based Feed:** Build a UI that reads from the local data bridge.
+*   **Visual Evidence:** Display the locally stored screenshots directly in the dashboard using the Express static file server.
+*   **Tailwind UI:** Maintain a premium, high-impact aesthetic for stakeholder pitches.
+
+---
+
 ## Key Risks & Mitigation
 
 | Risk | Impact | Mitigation |

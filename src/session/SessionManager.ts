@@ -7,15 +7,18 @@ export class SessionManager {
 
   /**
    * Mode A: Launch a fresh isolated browser context.
-   * Prioritizes Microsoft Edge (msedge) for office environment compatibility.
+   * Allows selecting browser via BROWSER env var (default: msedge).
    */
   async launchSession(): Promise<BrowserSession> {
     try {
       const isHeadless = process.env.HEADLESS === 'true' || !!process.env.CI;
-      // Use 'msedge' channel to leverage the browser already installed on most Windows/VDI systems.
+      const selectedBrowser = process.env.BROWSER || 'msedge';
+      
+      console.error(`[SessionManager] Launching ${selectedBrowser}...`);
+      
       const browser = await chromium.launch({ 
         headless: isHeadless,
-        channel: 'msedge'
+        channel: selectedBrowser as any
       }); 
       const context = await browser.newContext();
       const page = await context.newPage();
@@ -30,7 +33,7 @@ export class SessionManager {
       };
 
       this.sessions.set(id, session);
-      console.log(`[SessionManager] Launched new session: ${id}`);
+      console.error(`[SessionManager] Launched new session: ${id}`);
       return session;
     } catch (error) {
       console.error('[SessionManager] Failed to launch session:', error);
@@ -67,7 +70,7 @@ export class SessionManager {
       };
 
       this.sessions.set(id, session);
-      console.log(`[SessionManager] Attached to session: ${id} via ${cdpUrl}`);
+      console.error(`[SessionManager] Attached to session: ${id} via ${cdpUrl}`);
       return session;
     } catch (error) {
       console.error(`[SessionManager] Failed to attach to session at ${cdpUrl}:`, error);
@@ -88,11 +91,11 @@ export class SessionManager {
     try {
       if (session.mode === 'LAUNCH') {
         await session.browser.close();
-        console.log(`[SessionManager] Closed session: ${id}`);
+        console.error(`[SessionManager] Closed session: ${id}`);
       } else {
         // For ATTACH mode, we detach
         await session.browser.close(); // connectOverCDP browser.close() actually detaches
-        console.log(`[SessionManager] Detached from session: ${id}`);
+        console.error(`[SessionManager] Detached from session: ${id}`);
       }
     } catch (error) {
       console.error(`[SessionManager] Error closing session ${id}:`, error);

@@ -33,8 +33,8 @@ async function runSmokeTest() {
     // 5. Save Artifact
     console.log('Capturing and saving screenshot...');
     const screenshot = await assertionTools.visualScreenshot(session);
-    const artifact = await artifactTools.saveArtifact('smoke-test-step-1', 'screenshot', screenshot);
-    console.log('Screenshot saved to:', artifact.path);
+    const screenshotPath = await artifactTools.saveScreenshot('smoke-test-step-1', screenshot);
+    console.log('Screenshot saved to:', screenshotPath);
 
     // 6. Network Log
     const network = await browserTools.getNetworkLog(session);

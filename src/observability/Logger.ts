@@ -30,8 +30,8 @@ export class StructuredLogger {
       context,
     };
 
-    // Output to stdout as a JSON string
-    console.log(JSON.stringify(entry));
+    // Output to stderr as a JSON string (stderr is safe for MCP logs)
+    console.error(JSON.stringify(entry));
 
     // Hook for OpenTelemetry or other external observability platforms
     this.exportToOTel(entry);

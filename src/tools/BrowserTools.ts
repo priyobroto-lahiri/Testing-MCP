@@ -79,6 +79,19 @@ export class BrowserTools {
   }
 
   /**
+   * Gets the page title
+   */
+  async getTitle(session: BrowserSession): Promise<ActionResult> {
+    try {
+      this.ensureNetworkListener(session.page);
+      const title = await session.page.title();
+      return { success: true, data: title, message: `Page title is: ${title}` };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
    * Gets a compressed JSON tree of interactive elements
    */
   async getDOM(session: BrowserSession): Promise<ActionResult> {

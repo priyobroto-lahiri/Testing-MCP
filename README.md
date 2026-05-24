@@ -158,47 +158,64 @@ To improve upon traditional AI testing approaches, we identified the following g
 
 ---
 
-## 3. Revised MCP Tool Schema
+## 3. Tool Reference Guide
 
-### 3.1 `browser_navigate`
+This table provides a non-technical explanation of the tools the AI uses to interact with your system.
+
+| Tool Name | Action | Stakeholder Explanation |
+|:---|:---|:---|
+| `browser_launch` | **Start Fresh** | Opens a completely new, clean web browser for a new test session. |
+| `browser_attach` | **Join Existing** | Connects to the browser you already have open (perfect for office VDIs). |
+| `browser_navigate` | **Go to Website** | Directs the browser to a specific web address (URL). |
+| `browser_interact` | **Click/Type/Hover** | Performs physical actions like clicking buttons or typing text into boxes. |
+| `browser_get_dom` | **Read Page** | "Scrapes" the page so the AI can understand the layout and buttons. |
+| `assert_text` | **Verify Text** | Confirms that a specific word or message is visible on the screen. |
+| `capture_artifact` | **Take Evidence** | Saves a screenshot or a copy of the page data as proof for the report. |
+| `browser_close` | **Finish & Clean** | Safely closes the browser or disconnects once the test is done. |
+
+---
+
+## 4. Revised MCP Tool Schema
+
+### 4.1 `browser_navigate`
 - **Params:** `url` (string, required), `wait_until` (enum: `load` | `domcontentloaded` | `networkidle`, default `networkidle`)
 - **Returns:** `{ status_code, page_title, final_url, load_time_ms }`
 
-### 3.2 `browser_interact`
+### 4.2 `browser_interact`
 - **Params:** `action` (enum: `click` | `type` | `hover` | `clear` | `select` | `focus` | `key_press`), `selector` (string), `value` (string, optional), `selector_strategy` (enum: `css` | `xpath` | `aria` | `text`, default `css`)
 - **Returns:** `{ success, resolved_selector, element_snapshot, duration_ms }`
 
-### 3.3 `browser_get_dom`
+### 4.3 `browser_get_dom`
 - **Params:** `scope` (enum: `full` | `interactive_only` | `visible_only`, default `interactive_only`), `include_coordinates` (boolean, default true)
 - **Returns:** Compressed JSON tree of interactive elements with bounding boxes and ARIA roles
 
-### 3.4 `browser_get_network_log`
+### 4.4 `browser_get_network_log`
 - **Params:** `filter_status` (int[], optional — e.g., `[400, 500]`)
 - **Returns:** Array of `{ url, method, status, duration_ms }` — catches silent API failures during UI actions
 
-### 3.5 `assert_visual`
+### 4.5 `assert_visual`
 - **Params:** `scope` (enum: `viewport` | `element` | `full_page`), `selector` (string, optional), `baseline_ref` (string, optional — enables pixel-diff regression)
 - **Returns:** `{ image_b64, artifact_id, diff_score? }`
 
-### 3.6 `assert_text_present`
+### 4.6 `assert_text_present`
 - **Params:** `text` (string), `selector` (string, optional), `exact_match` (boolean, default false)
 - **Returns:** `{ found, matched_element, surrounding_context }`
 
-### 3.7 `assert_element_state`
+### 4.7 `assert_element_state`
 - **Params:** `selector` (string), `expected_state` (enum: `visible` | `hidden` | `enabled` | `disabled` | `checked`)
 - **Returns:** `{ matches, actual_state }`
 
-### 3.8 `a11y_audit`
+### 4.8 `a11y_audit`
 - **Params:** `standard` (enum: `wcag2a` | `wcag2aa` | `wcag21aa`, default `wcag2aa`), `selector` (string, optional — scopes audit to a component)
 - **Returns:** `{ violations[], passes[], incomplete[] }` (axe-core output)
 
-### 3.9 `perf_snapshot`
+### 4.9 `perf_snapshot`
 - **Params:** none
 - **Returns:** `{ lcp_ms, cls_score, fid_ms, ttfb_ms }` via CDP Performance API
 
 ---
 
-## 4. Execution Flow
+## 5. Execution Flow
 
 1.  **Input Validation & Rate-limit Check**: [Trigger: Chat Prompt OR CI Webhook]
 2.  **Intent Parser — LLM Pass 1**: Produces Step DAG. Flags ambiguous steps for clarification.
@@ -213,7 +230,7 @@ To improve upon traditional AI testing approaches, we identified the following g
 
 ---
 
-## 5. Data Flow: From User Input to Browser Action
+## 6. Data Flow: From User Input to Browser Action
 
 This section traces the complete journey of a test case from the user's initial input to the final automated browser action.
 
@@ -257,7 +274,7 @@ This section traces the complete journey of a test case from the user's initial 
 
 ---
 
-## 6. Technology Stack & Required Skills
+## 7. Technology Stack & Required Skills
 
 To build and maintain this architecture, the following tools, software, and specialized skills are required:
 
@@ -290,7 +307,7 @@ To build and maintain this architecture, the following tools, software, and spec
 
 ---
 
-## 7. System Prompt Template
+## 8. System Prompt Template
 
 ### SYSTEM INSTRUCTIONS — QA EXECUTION AGENT v2
 
@@ -308,7 +325,7 @@ You are an expert QA Automation Engineer operating a web browser via Model Conte
 
 ---
 
-## 8. Security Model (Hardened)
+## 9. Security Model (Hardened)
 
 | Control | Implementation |
 |---|---|
@@ -322,7 +339,7 @@ You are an expert QA Automation Engineer operating a web browser via Model Conte
 
 ---
 
-## 9. Key Improvements Over v1
+## 10. Key Improvements Over v1
 
 | Dimension | v1 | v2 |
 |---|---|---|
@@ -334,5 +351,63 @@ You are an expert QA Automation Engineer operating a web browser via Model Conte
 | Observability | None | Structured logs + OTel traces + Prometheus |
 | Browser Lifecycle | Undefined | Local Session Manager (Launch / CDP Attach) |
 | Network failures | Not detected | `browser_get_network_log` after every mutation |
+        |
 | Cost controls | None | Rate limiter + token budget + step cap |
 | Ambiguity handling | None | Planner flags ambiguous steps before execution |
+
+---
+
+## 🚀 Office Laptop Setup & Quick Start
+
+Follow these steps to get the Testing MCP project running on a new machine.
+
+### Prerequisites
+1. **Node.js**: v18 or higher (\`node -v\` to check).
+2. **VS Code**: With the **Cline** extension installed.
+3. **GitHub Copilot**: Access enabled in your VS Code / Cline settings.
+4. **Browser**: Microsoft Edge or Google Chrome.
+
+### Step 1: Installation & Build
+Clone the repository and install all dependencies:
+\`\`\`bash
+# 1. Install backend dependencies
+npm install
+
+# 2. Install frontend dependencies
+cd dashboard/frontend
+npm install
+cd ../..
+
+# 3. Build the project
+npm run build
+\`\`\`
+
+### Step 2: Start the Dashboard
+The execution dashboard gives you real-time visibility into the AI's actions and saves artifacts (screenshots).
+\`\`\`bash
+# Run this from the root of the project
+.\start-dashboard.bat
+\`\`\`
+*Access the dashboard in your browser at: **http://localhost:5173***
+
+### Step 3: Configure the Browser (Attach Mode)
+For office environments, it's best to attach the AI to a browser window where you are already logged in to bypass SSO/MFA.
+1. Close all existing browser windows.
+2. Launch Edge from the command line or a modified shortcut with debugging enabled:
+   \`\`\`bash
+   msedge.exe --remote-debugging-port=9222
+   \`\`\`
+
+### Step 4: Configure Cline (MCP Server)
+1. Open the Cline extension in VS Code.
+2. Go to Settings (gear icon) -> MCP Servers.
+3. Add a new server configuration pointing to the compiled \`index.js\` file:
+   * **Command**: \`node\`
+   * **Arguments**: \`["<absolute_path_to_cloned_repo>/dist/index.js"]\`
+
+### Step 5: Test the Setup
+Paste this prompt into Cline to verify the connection:
+> "Attach to the existing browser on port 9222. Navigate to https://www.google.com, capture a screenshot with stepId 'setup-validation', and get the page title."
+
+---
+

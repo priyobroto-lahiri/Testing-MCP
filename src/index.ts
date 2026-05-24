@@ -90,6 +90,17 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         },
       },
       {
+        name: "browser_get_title",
+        description: "Get the title of the current page",
+        inputSchema: {
+          type: "object",
+          properties: {
+            sessionId: { type: "string" },
+          },
+          required: ["sessionId"],
+        },
+      },
+      {
         name: "assert_text",
         description: "Assert text is present on the page or element",
         inputSchema: {
@@ -172,6 +183,13 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         return { content: [{ type: "text", text: JSON.stringify(result) }] };
       }
 
+      case "browser_get_title": {
+        const session = sessionManager.getSession(args?.sessionId as string);
+        if (!session) throw new Error("Session not found");
+        const result = await browserTools.getTitle(session);
+        return { content: [{ type: "text", text: JSON.stringify(result) }] };
+      }
+
       case "assert_text": {
         const session = sessionManager.getSession(args?.sessionId as string);
         if (!session) throw new Error("Session not found");
@@ -182,15 +200,15 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case "capture_artifact": {
         const session = sessionManager.getSession(args?.sessionId as string);
         if (!session) throw new Error("Session not found");
-        let content: Buffer | string;
+        let path: string;
         if (args?.type === "screenshot") {
-          content = await assertionTools.visualScreenshot(session);
+          const content = await assertionTools.visualScreenshot(session);
+          path = await artifactTools.saveScreenshot(args?.stepId as string, content);
         } else {
           const dom = await browserTools.getDOM(session);
-          content = JSON.stringify(dom.data);
+          path = await artifactTools.saveDomSnapshot(args?.stepId as string, JSON.stringify(dom.data));
         }
-        const artifact = await artifactTools.saveArtifact(args?.stepId as string, args?.type as any, content);
-        return { content: [{ type: "text", text: `Artifact saved: ${artifact.path}` }] };
+        return { content: [{ type: "text", text: `Artifact saved: ${path}` }] };
       }
 
       case "browser_close": {

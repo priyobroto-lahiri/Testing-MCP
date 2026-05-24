@@ -3,83 +3,54 @@ import * as path from 'path';
 import { StepArtifact } from '../types';
 
 export class ArtifactTools {
-  private baseDir: string;
+  private artifactsDir: string;
 
-  constructor(baseDir: string = './artifacts') {
-    // Determine the root of the project to ensure artifacts are saved correctly
-    this.baseDir = path.resolve(process.cwd(), baseDir);
-    this.ensureDir();
-  }
-
-  /**
-   * Ensures the artifacts directory exists
-   */
-  private ensureDir() {
-    if (!fs.existsSync(this.baseDir)) {
-      fs.mkdirSync(this.baseDir, { recursive: true });
+  constructor() {
+    this.artifactsDir = path.resolve(process.cwd(), 'artifacts');
+    if (!fs.existsSync(this.artifactsDir)) {
+      fs.mkdirSync(this.artifactsDir, { recursive: true });
     }
   }
 
   /**
-   * Saves an artifact to the local filesystem
-   * @param stepId The ID of the step generating this artifact
-   * @param type The type of artifact ('screenshot', 'dom', 'network')
-   * @param content The content to save (Buffer for binary, string for text)
-   * @returns A StepArtifact object with metadata and path
+   * Saves a screenshot locally and returns the relative path.
    */
-  async saveArtifact(
-    stepId: string,
-    type: StepArtifact['type'],
-    content: Buffer | string
-  ): Promise<StepArtifact> {
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const extension = this.getExtension(type);
-    const fileName = `${stepId}_${timestamp}.${extension}`;
-    const filePath = path.join(this.baseDir, fileName);
-
-    if (Buffer.isBuffer(content)) {
-      await fs.promises.writeFile(filePath, content);
-    } else {
-      await fs.promises.writeFile(filePath, content, 'utf8');
-    }
-
-    // Return relative path or absolute path? 
-    // Usually absolute is safer for internal use, but relative might be better for reports.
-    // Given the prompt says "local ./artifacts directory", let's return the absolute path for now.
-    return {
-      stepId,
-      timestamp: new Date().toISOString(),
-      type,
-      path: filePath
-    };
-  }
-
-  private getExtension(type: StepArtifact['type']): string {
-    switch (type) {
-      case 'screenshot': return 'png';
-      case 'dom': return 'html';
-      case 'network': return 'json';
-      default: return 'txt';
-    }
+  async saveScreenshot(stepId: string, content: Buffer): Promise<string> {
+    const fileName = `screenshot_${stepId}_${Date.now()}.png`;
+    const filePath = path.join(this.artifactsDir, fileName);
+    
+    await fs.promises.writeFile(filePath, content);
+    return fileName; // Return just the name for the static file server
   }
 
   /**
-   * Lists all artifacts in the directory
+   * Saves a DOM snapshot locally.
    */
-  async listArtifacts(): Promise<string[]> {
-    if (!fs.existsSync(this.baseDir)) return [];
-    return fs.promises.readdir(this.baseDir);
+  async saveDomSnapshot(stepId: string, content: string): Promise<string> {
+    const fileName = `dom_${stepId}_${Date.now()}.json`;
+    const filePath = path.join(this.artifactsDir, fileName);
+    
+    await fs.promises.writeFile(filePath, content);
+    return fileName;
   }
 
   /**
-   * Deletes all artifacts
+   * Appends execution data to the local JSON log.
    */
-  async clearArtifacts(): Promise<void> {
-    if (fs.existsSync(this.baseDir)) {
-      const files = await fs.promises.readdir(this.baseDir);
-      for (const file of files) {
-        await fs.promises.unlink(path.join(this.baseDir, file));
-      }
+  async logExecutionStep(data: any): Promise<void> {
+    const logPath = path.resolve(process.cwd(), 'execution_log.json');
+    let logs = [];
+    
+    if (fs.existsSync(logPath)) {
+      const content = await fs.promises.readFile(logPath, 'utf8');
+      logs = JSON.parse(content || '[]');
     }
+    
+    logs.push({
+      ...data,
+      timestamp: new Date().toISOString()
+    });
+    
+    await fs.promises.writeFile(logPath, JSON.stringify(logs, null, 2));
   }
 }

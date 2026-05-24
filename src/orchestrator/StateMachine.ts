@@ -4,6 +4,7 @@ import { AssertionTools } from '../tools/AssertionTools';
 import { ArtifactTools } from '../tools/ArtifactTools';
 import { SelfHealer } from './SelfHealer';
 import { logger } from '../observability/Logger';
+import * as axios from 'axios';
 
 export enum ExecutionState {
   IDLE = 'IDLE',
@@ -20,6 +21,7 @@ export class ExecutionStateMachine {
   private assertionTools = new AssertionTools();
   private artifactTools = new ArtifactTools();
   private selfHealer = new SelfHealer();
+  private currentSessionId?: string;
 
   getState(): ExecutionState {
     return this.state;
@@ -28,6 +30,15 @@ export class ExecutionStateMachine {
   private transition(newState: ExecutionState) {
     logger.info(`State transition: ${this.state} -> ${newState}`);
     this.state = newState;
+    this.notifyDashboard({ type: 'STATE_TRANSITION', payload: { from: this.state, to: newState } });
+  }
+
+  private async notifyDashboard(event: any) {
+    try {
+      await axios.default.post('http://localhost:3001/api/event', event);
+    } catch (err) {
+      // Ignore if dashboard backend is not running
+    }
   }
 
   /**
@@ -36,6 +47,9 @@ export class ExecutionStateMachine {
   async executePlan(session: BrowserSession, plan: TestPlan): Promise<StepResult[]> {
     this.transition(ExecutionState.PLANNING);
     this.results = [];
+    this.currentSessionId = `session_${Date.now()}`;
+
+    this.notifyDashboard({ type: 'SESSION_STARTED', payload: { sessionId: this.currentSessionId, goal: plan.goal, timestamp: new Date().toISOString() } });
 
     const executedStepIds = new Set<string>();
     const stepsToExecute = [...plan.steps];
@@ -43,30 +57,24 @@ export class ExecutionStateMachine {
     this.transition(ExecutionState.EXECUTING);
 
     while (stepsToExecute.length > 0) {
-      // Find a step that has no unmet dependencies
       const readyStepIndex = stepsToExecute.findIndex(step => 
         !step.dependsOn || step.dependsOn.length === 0 || step.dependsOn.every(depId => executedStepIds.has(depId))
       );
 
       if (readyStepIndex === -1) {
-        const remainingIds = stepsToExecute.map(s => s.id).join(', ');
-        logger.error('Deadlock detected in TestPlan dependencies', { remainingSteps: remainingIds });
-        throw new Error(`Deadlock detected in TestPlan dependencies or missing dependency. Remaining steps: ${remainingIds}`);
+        logger.error('Deadlock detected in TestPlan dependencies');
+        throw new Error('Deadlock detected in TestPlan dependencies');
       }
 
-      // Move step from queue to execution
       const step = stepsToExecute.splice(readyStepIndex, 1)[0];
-      
       const result = await this.executeStep(session, step);
       this.results.push(result);
       executedStepIds.add(step.id);
 
-      if (!result.success) {
-        logger.warn(`Step failed: ${step.id}. Stopping execution.`, { stepId: step.id, error: result.error });
-        break;
-      }
+      if (!result.success) break;
     }
 
+    this.notifyDashboard({ type: 'SESSION_COMPLETED', payload: { sessionId: this.currentSessionId, success: this.results.every(r => r.success), timestamp: new Date().toISOString() } });
     this.transition(ExecutionState.REPORTING);
     return this.results;
   }
@@ -76,7 +84,8 @@ export class ExecutionStateMachine {
    */
   private async executeStep(session: BrowserSession, step: TestStep): Promise<StepResult> {
     logger.logStep(step.id, step.action, 'started', { description: step.description });
-    
+    this.notifyDashboard({ type: 'STEP_STARTED', payload: { stepId: step.id, action: step.action, description: step.description, sessionId: this.currentSessionId, timestamp: new Date().toISOString() } });
+
     let actionResult: ActionResult;
     const artifacts: StepArtifact[] = [];
 
@@ -97,15 +106,7 @@ export class ExecutionStateMachine {
         case 'assert': {
           const prevState = this.state;
           this.state = ExecutionState.ASSERTING;
-          
-          if (step.params.type === 'text' || (!step.params.type && step.params.text)) {
-            actionResult = await this.assertionTools.assertText(session, step.params.text, step.params.selector);
-          } else if (step.params.type === 'elementState') {
-            actionResult = await this.assertionTools.assertElementState(session, step.params.selector, step.params.state);
-          } else {
-            actionResult = { success: false, error: `Unsupported assertion params: ${JSON.stringify(step.params)}` };
-          }
-          
+          actionResult = await this.assertionTools.assertText(session, step.params.text, step.params.selector);
           this.state = prevState;
           break;
         }
@@ -113,39 +114,37 @@ export class ExecutionStateMachine {
           actionResult = { success: false, error: `Unknown action: ${step.action}` };
       }
     } catch (error: any) {
-      actionResult = { success: false, error: `Execution error: ${error.message}` };
+      actionResult = { success: false, error: error.message };
     }
 
-    // Handle failure: Trigger SelfHealer and capture artifacts
     if (!actionResult.success) {
-      logger.logStep(step.id, step.action, 'failed', { error: actionResult.error });
       await this.triggerSelfHealer(session, step, actionResult);
-      
-      try {
-        // Always capture a screenshot on failure
-        const screenshot = await session.page.screenshot();
-        const screenshotArtifact = await this.artifactTools.saveArtifact(step.id, 'screenshot', screenshot);
-        artifacts.push(screenshotArtifact);
-
-        // Capture DOM tree for diagnosis
-        const domResult = await this.browserTools.getDOM(session);
-        if (domResult.success) {
-          const domArtifact = await this.artifactTools.saveArtifact(step.id, 'dom', JSON.stringify(domResult.data, null, 2));
-          artifacts.push(domArtifact);
-        }
-
-        // Capture network logs (errors)
-        const networkResult = await this.browserTools.getNetworkLog(session);
-        if (networkResult.success) {
-          const networkArtifact = await this.artifactTools.saveArtifact(step.id, 'network', JSON.stringify(networkResult.data, null, 2));
-          artifacts.push(networkArtifact);
-        }
-      } catch (artifactError) {
-        logger.error(`Failed to capture artifacts for step ${step.id}`, { error: artifactError });
-      }
-    } else {
-      logger.logStep(step.id, step.action, 'completed');
     }
+
+    // Capture artifacts locally
+    let screenshotName: string | undefined;
+    try {
+      const screenshot = await session.page.screenshot();
+      screenshotName = await this.artifactTools.saveScreenshot(step.id, screenshot);
+      artifacts.push({ stepId: step.id, timestamp: new Date().toISOString(), type: 'screenshot', path: screenshotName });
+    } catch (err) {
+      logger.error('Failed to capture local screenshot', { error: err });
+    }
+
+    const stepData = {
+      sessionId: this.currentSessionId,
+      stepId: step.id,
+      action: step.action,
+      status: actionResult.success ? 'COMPLETED' : 'FAILED',
+      screenshot: screenshotName,
+      error: actionResult.error,
+      timestamp: new Date().toISOString()
+    };
+
+    // Log to local JSON
+    await this.artifactTools.logExecutionStep(stepData);
+
+    this.notifyDashboard({ type: 'STEP_COMPLETED', payload: stepData });
 
     return {
       stepId: step.id,
